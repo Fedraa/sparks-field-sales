@@ -1,0 +1,8 @@
+{
+  "name": "Sparks Field Sales",
+  "description": "Field sales location recommendations for Sparks centers: select your center, see today's best locations, priority, distance, best visiting time, and open them in Google Maps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
