@@ -1,8 +1,8 @@
 import React from 'react';
-import { Route, ExternalLink, MapPin, Clock } from 'lucide-react';
+import { Route, MapPin, Clock } from 'lucide-react';
 import type { Center, FieldLocation } from '../../data/fieldData';
-import { DAY_EN, routeUrl, type TodayInfo } from '../../lib/visitPlan';
-import { fmt, openExternal } from './ui';
+import { DAY_EN, type PlanDayInfo } from '../../lib/visitPlan';
+import { fmt } from './ui';
 
 interface Props {
   center: Center;
@@ -13,7 +13,6 @@ interface Props {
 
 /** Ordered list of the stops for today + one-click multi-stop Google Maps route. */
 export const VisitPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => {
-  const url = routeUrl(center, stops.map((s) => s.loc));
   return (
     <section className="bg-white rounded-2xl border border-[#DCE8DE] p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
@@ -66,15 +65,7 @@ export const VisitPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => 
         </ol>
       )}
 
-      {url && (
-        <button
-          onClick={() => openExternal(url)}
-          className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#254C33] hover:bg-[#1E3A28] text-white text-sm font-bold"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Open route in Google Maps
-        </button>
-      )}
+    
       <p className="mt-2 text-[10px] text-[#8AA092] leading-snug">
         Route starts at {center.name.replace('Sparks Center - ', 'Sparks ')}. Order = nearest next stop.
       </p>
