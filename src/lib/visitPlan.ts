@@ -59,36 +59,36 @@ export function hoursForDay(hours: string, day: number): { text: string; closed:
   return { text, closed: /tutup|closed/i.test(text) };
 }
 
-export type TodayStatus = 'today' | 'otherDay' | 'noData' | 'closed';
+export type PlanDayStatus = 'recommended' | 'otherDay' | 'noData' | 'closed';
 
-export interface TodayInfo {
-  status: TodayStatus;
-  todaySlot: Slot | null; // strongest slot today (with data)
+export interface PlanDayInfo {
+  status: PlanDayStatus;
+  planDaySlot: Slot | null; // strongest slot today (with data)
   bestSlot: Slot | null; // strongest slot of the week (with data)
-  hoursToday: { text: string; closed: boolean } | null;
+  hoursForPlanDay: { text: string; closed: boolean } | null;
   isBestDay: boolean;
 }
 
-export function todayInfo(l: FieldLocation, day: number): TodayInfo {
-  const hoursToday = hoursForDay(l.hours, day);
+export function planDayInfo(l: FieldLocation, day: number): PlanDayInfo {
+  const hoursForPlanDay = hoursForDay(l.hours, day);
   const withData = allSlots(l).filter((s) => s.value !== null);
   const bestSlot = withData.length ? withData.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
-  const today = slotsForDay(l, day).filter((s) => s.value !== null);
-  const todaySlot = today.length ? today.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
+  const planDaySlots = slotsForDay(l, day).filter((s) => s.value !== null);
+  const planDaySlot = today.length ? today.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
   const isBestDay = !!l.popular.bestDay && l.popular.bestDay.toLowerCase() === DAY_ID[day].toLowerCase();
 
-  let status: TodayStatus;
-  if (hoursToday?.closed) status = 'closed';
+  let status: PlanDayStatus;
+  if (hoursForPlanDay?.closed) status = 'closed';
   else if (!withData.length) status = 'noData';
-  else if ((todaySlot && todaySlot.value! >= STRONG_TRAFFIC) || isBestDay) status = 'today';
+  else if ((planDaySlot && planDaySlot.value! >= STRONG_TRAFFIC) || isBestDay) status = 'recommended';
   else status = 'otherDay';
-  return { status, todaySlot, bestSlot, hoursToday, isBestDay };
+  return { status, planDaySlot, bestSlot, hoursForPlanDay, isBestDay };
 }
 
 const fmt = (v: number | null) => (v === null ? '–' : Math.round(v).toString());
 
 /** Short, data-based explanation of why the location is recommended. */
-export function whyRecommended(l: FieldLocation, info: TodayInfo, day: number): string[] {
+export function whyRecommended(l: FieldLocation, info: PlanDayInfo, day: number): string[] {
   const out: string[] = [];
   if (l.rankInCenter !== null && l.scoreTotal !== null) {
     out.push(
@@ -104,12 +104,12 @@ export function whyRecommended(l: FieldLocation, info: TodayInfo, day: number): 
   ];
   const strong = pillars.filter(([, v]) => v !== null && v >= 75).map(([k, v]) => `${k} ${fmt(v)}`);
   if (strong.length) out.push(`Strong ${strong.join(', ')}.`);
-  if (info.status === 'today' && info.todaySlot) {
-    out.push(`Busy today ${info.todaySlot.window} (${fmt(info.todaySlot.value)}/100)${info.isBestDay ? ' — today is its best day' : ''}.`);
-  } else if (info.status === 'today' && info.isBestDay) {
-    out.push(`Today (${DAY_ID[day]}) is its busiest day.`);
+  if (info.status === 'recommended' && info.planDaySlot) {
+    out.push(`Busy on ${DAY_ID[day]} ${info.planDaySlot.window} (${fmt(info.planDaySlot.value)}/100)${info.isBestDay ? ` — ${DAY_ID[day]} is its best day` : ''}.`);
+  } else if (info.status === 'recommended' && info.isBestDay) {
+    out.push(`${DAY_ID[day]} is its busiest day.`);
   } else if (info.status === 'otherDay' && info.bestSlot) {
-    out.push(`Quieter today; busiest at ${info.bestSlot.label} (${fmt(info.bestSlot.value)}/100).`);
+    out.push(`Quieter on ${DAY_ID[day]}; busiest at ${info.bestSlot.label} (${fmt(info.bestSlot.value)}/100).`);
   }
   if (l.distanceKm !== null && l.distanceKm <= 2) out.push(`Close to the center (${l.distanceKm.toFixed(1)} km).`);
   return out;
