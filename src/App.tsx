@@ -119,7 +119,7 @@ export default function App() {
   }, [data, center, day]);
 
   const stats = useMemo(() => {
-    const s = { today: 0, otherDay: 0, noData: 0, closed: 0, tierA: 0 };
+    const s = { recommended: 0, otherDay: 0, noData: 0, closed: 0, tierA: 0 };
     items.forEach(({ loc, info }) => {
       s[info.status]++;
       if (loc.tier === 'A') s.tierA++;
@@ -131,7 +131,7 @@ export default function App() {
   const plan = useMemo(() => {
     if (!center) return [];
     const top = items
-      .filter((x) => x.info.status === 'today' && x.loc.scoreTotal !== null)
+      .filter((x) => x.info.status === 'recommended' && x.loc.scoreTotal !== null)
       .sort((a, b) => byScore(a.loc, b.loc))
       .slice(0, PLAN_SIZE);
     const ordered = orderRoute(center, top.map((x) => x.loc));
@@ -148,7 +148,7 @@ export default function App() {
     );
     switch (view) {
       case 'best':
-        arr = arr.filter((x) => x.info.status === 'today').sort((a, b) => byScore(a.loc, b.loc));
+        arr = arr.filter((x) => x.info.status === 'recommended').sort((a, b) => byScore(a.loc, b.loc));
         break;
       case 'closest':
         arr = [...arr].sort((a, b) => byDistance(a.loc, b.loc));
