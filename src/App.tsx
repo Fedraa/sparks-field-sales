@@ -40,7 +40,7 @@ const storage = {
 };
 
 const VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: 'best', label: 'Best Today', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
+  { id: 'best', label: 'Best for Day', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
   { id: 'closest', label: 'Closest', icon: <Navigation className="w-3.5 h-3.5" /> },
   { id: 'score', label: 'Highest Score', icon: <Trophy className="w-3.5 h-3.5" /> },
 ];
@@ -270,7 +270,7 @@ export default function App() {
               <div>
                 <p className="text-xs font-semibold text-[#5A7766]">{dateLabel}</p>
                 <h1 className="text-xl sm:text-2xl font-extrabold text-[#173020]">
-                  {day === todayIdx ? "Today's" : `${DAY_EN[day]}'s`} best locations near{' '}
+                  Best locations for {DAY_EN[day]} near{' '}
                   {center.name.replace('Sparks Center - ', '')}
                 </h1>
               </div>
@@ -298,7 +298,7 @@ export default function App() {
 
             {/* Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
-              <Stat label="Visit today" value={stats.today} accent onClick={() => setView('best')} />
+              <Stat label="Best for day" value={stats.today} accent onClick={() => setView('best')} />
               <Stat label="Tier A locations" value={stats.tierA} onClick={() => setView('score')} />
               <Stat label="Better another day" value={stats.otherDay} onClick={() => setView('score')} />
               <Stat label="All locations" value={items.length} sub={`${stats.noData} without crowd data`} onClick={() => setView('score')} />
