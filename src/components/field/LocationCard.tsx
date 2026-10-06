@@ -41,18 +41,10 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
       }`}
     >
       <div className="p-4 sm:p-5">
-        {/* Row 1: rank / name / score */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-11 text-center">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-[#6B8574]">Rank</div>
-            <div className="text-xl font-extrabold text-[#1E3A28] tabular-nums leading-tight">
-              {loc.rankInCenter !== null ? `#${loc.rankInCenter}` : '–'}
-            </div>
-            <div className="text-[10px] text-[#8AA092]">of {loc.centerTotal || '–'}</div>
-          </div>
-
+        {/* Row 1: name / badges / distance */}
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               <TierBadge tier={loc.tier} />
               <StatusPill info={info} />
             </div>
@@ -64,24 +56,15 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
           </div>
 
           <div className="shrink-0 text-right">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-[#6B8574]">Score</div>
-            <div className="text-2xl font-extrabold text-[#254C33] tabular-nums leading-tight">{fmt(loc.scoreTotal)}</div>
-            <div className="text-[11px] font-semibold text-[#865E0C] flex items-center justify-end gap-1">
-              <MapPin className="w-3 h-3" />
+            <div className="text-xs font-semibold text-[#865E0C] flex items-center justify-end gap-1 bg-[#FDF8EB] px-2.5 py-1 rounded-lg border border-[#F5E6BE]">
+              <MapPin className="w-3.5 h-3.5 text-[#B87A14]" />
               {loc.distanceKm !== null ? `${loc.distanceKm.toFixed(1)} km` : 'Distance n/a'}
             </div>
           </div>
         </div>
 
-        {/* Row 2: pillar scores */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          <ScoreBar label="Traffic" value={loc.trafficScore} />
-          <ScoreBar label="Family" value={loc.familyScore} />
-          <ScoreBar label="Middle segment" value={loc.segmentScore} />
-        </div>
-
-        {/* Row 3: when to go */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        {/* Row 2: when to go */}
+        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <div className="flex items-start gap-2 rounded-xl bg-[#F4F8F5] border border-[#E3EDE5] px-3 py-2">
             <CalendarDays className="w-4 h-4 text-[#356B48] shrink-0 mt-0.5" />
             <div>
@@ -101,15 +84,7 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
           </div>
         </div>
 
-        {/* Row 4: why */}
-        {why.length > 0 && (
-          <div className="mt-3 text-[13px] text-[#2F4939] leading-relaxed">
-            <span className="font-bold text-[#1E3A28]">Why: </span>
-            {why.join(' ')}
-          </div>
-        )}
-
-        {/* Actions */}
+        {/* Row 3: Actions */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {loc.mapsUrl ? (
             <button
@@ -149,7 +124,25 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
       </div>
 
       {open && (
-        <div className="border-t border-[#EEF4EF] px-4 sm:px-5 py-4 text-xs text-[#2F4939] space-y-3 bg-[#FBFCFB] rounded-b-2xl">
+        <div className="border-t border-[#EEF4EF] px-4 sm:px-5 py-4 text-xs text-[#2F4939] space-y-3.5 bg-[#FBFCFB] rounded-b-2xl">
+          {/* Why recommended */}
+          {why.length > 0 && (
+            <div className="p-3 rounded-xl bg-[#F4F8F5] border border-[#E3EDE5] text-[13px] text-[#2F4939] leading-relaxed">
+              <span className="font-bold text-[#1E3A28]">Why recommended: </span>
+              {why.join(' ')}
+            </div>
+          )}
+
+          {/* Pillar scores */}
+          <div>
+            <div className="font-bold text-[#1E3A28] mb-1.5">Scoring Breakdown</div>
+            <div className="grid grid-cols-3 gap-3">
+              <ScoreBar label="Traffic" value={loc.trafficScore} />
+              <ScoreBar label="Family" value={loc.familyScore} />
+              <ScoreBar label="Middle segment" value={loc.segmentScore} />
+            </div>
+          </div>
+
           {/* Popular times */}
           <div>
             <div className="font-bold text-[#1E3A28] mb-1.5">Crowd level by time slot (Google Popular Times, 0–100)</div>
@@ -225,11 +218,6 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
               </div>
             </div>
           )}
-          <p className="text-[10px] text-[#8AA092]">
-            ID {loc.id}
-            {loc.globalRank !== null ? ` · overall rank ${loc.globalRank}` : ''}
-            {loc.completeness ? ` · data completeness ${loc.completeness}` : ''}
-          </p>
         </div>
       )}
     </article>

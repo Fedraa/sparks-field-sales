@@ -8,8 +8,6 @@ import {
   CalendarCheck,
   Trophy,
   Navigation,
-  Star,
-  Map as MapIcon,
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
@@ -18,9 +16,8 @@ import { DAY_EN, orderRoute, todayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
 import { TodayPlan } from './components/field/TodayPlan';
-import { FieldMap } from './components/field/FieldMap';
 
-type View = 'best' | 'score' | 'closest' | 'tierA';
+type View = 'best' | 'closest' | 'score';
 const PLAN_SIZE = 5;
 const PAGE = 20;
 const CENTER_KEY = 'sparks.fieldSales.center';
@@ -44,9 +41,8 @@ const storage = {
 
 const VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'best', label: 'Best Today', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
-  { id: 'score', label: 'Highest Score', icon: <Trophy className="w-3.5 h-3.5" /> },
   { id: 'closest', label: 'Closest', icon: <Navigation className="w-3.5 h-3.5" /> },
-  { id: 'tierA', label: 'Tier A', icon: <Star className="w-3.5 h-3.5" /> },
+  { id: 'score', label: 'Highest Score', icon: <Trophy className="w-3.5 h-3.5" /> },
 ];
 
 const byScore = (a: { scoreTotal: number | null }, b: { scoreTotal: number | null }) =>
@@ -66,7 +62,6 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visible, setVisible] = useState(PAGE);
-  const [showMapMobile, setShowMapMobile] = useState(false);
 
   const todayIdx = new Date().getDay();
 
@@ -151,21 +146,15 @@ export default function App() {
       ({ loc }) =>
         !q || `${loc.name} ${loc.category} ${loc.group} ${loc.address}`.toLowerCase().includes(q)
     );
-    const statusOrder = { today: 0, noData: 1, otherDay: 2, closed: 3 } as const;
     switch (view) {
       case 'best':
         arr = arr.filter((x) => x.info.status === 'today').sort((a, b) => byScore(a.loc, b.loc));
         break;
-      case 'score':
-        arr = [...arr].sort((a, b) => byScore(a.loc, b.loc));
-        break;
       case 'closest':
         arr = [...arr].sort((a, b) => byDistance(a.loc, b.loc));
         break;
-      case 'tierA':
-        arr = arr
-          .filter((x) => x.loc.tier === 'A')
-          .sort((a, b) => statusOrder[a.info.status] - statusOrder[b.info.status] || byScore(a.loc, b.loc));
+      case 'score':
+        arr = [...arr].sort((a, b) => byScore(a.loc, b.loc));
         break;
     }
     return arr;
@@ -188,8 +177,6 @@ export default function App() {
     }
     return base;
   }, [list, visible, selectedId, items]);
-
-  const mapItems = useMemo(() => list.map(({ loc, info }) => ({ loc, status: info.status })), [list]);
 
   const dateLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -312,7 +299,7 @@ export default function App() {
             {/* Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
               <Stat label="Visit today" value={stats.today} accent onClick={() => setView('best')} />
-              <Stat label="Tier A locations" value={stats.tierA} onClick={() => setView('tierA')} />
+              <Stat label="Tier A locations" value={stats.tierA} onClick={() => setView('score')} />
               <Stat label="Better another day" value={stats.otherDay} onClick={() => setView('score')} />
               <Stat label="All locations" value={items.length} sub={`${stats.noData} without crowd data`} onClick={() => setView('score')} />
             </div>
@@ -323,24 +310,9 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-start">
-                {/* Left: plan + map */}
+                {/* Left: plan */}
                 <aside className="space-y-4 lg:sticky lg:top-20">
                   <TodayPlan center={center} day={day} stops={plan} onSelect={selectFromPlanOrMap} />
-                  <button
-                    onClick={() => setShowMapMobile((v) => !v)}
-                    className="lg:hidden w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] text-xs font-bold"
-                  >
-                    <MapIcon className="w-4 h-4" /> {showMapMobile ? 'Hide map' : 'Show map'}
-                  </button>
-                  <div className={`${showMapMobile ? 'block' : 'hidden'} lg:block`}>
-                    <FieldMap
-                      center={center}
-                      items={mapItems}
-                      planIds={planIds}
-                      selectedId={selectedId}
-                      onSelect={selectFromPlanOrMap}
-                    />
-                  </div>
                 </aside>
 
                 {/* Right: filters + list */}
@@ -376,9 +348,8 @@ export default function App() {
                   <p className="text-xs text-[#5A7766] mb-3 px-1">
                     {list.length} location{list.length === 1 ? '' : 's'}
                     {view === 'best' && ` with strong crowd data for ${DAY_EN[day]} (Popular Times ≥ 50 or busiest day)`}
-                    {view === 'score' && ' sorted by total score'}
                     {view === 'closest' && ' sorted by distance from the center'}
-                    {view === 'tierA' && ' in Tier A — locations to visit today are listed first'}
+                    {view === 'score' && ' sorted by total score'}
                   </p>
 
                   {list.length === 0 && (
