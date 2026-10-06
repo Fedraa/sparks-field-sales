@@ -15,7 +15,7 @@ import { loadFieldData, type FieldDataset } from './data/fieldData';
 import { DAY_EN, orderRoute, todayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
-import { TodayPlan } from './components/field/TodayPlan';
+import { VisitPlan } from './components/field/VisitPlan';
 
 type View = 'best' | 'closest' | 'score';
 const PLAN_SIZE = 5;
