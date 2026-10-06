@@ -22,7 +22,7 @@ export const VisitPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => 
           </div>
           <div>
             <h2 className="text-sm font-extrabold text-[#173020]">{DAY_EN[day]}'s visit plan</h2>
-            <p className="text-[11px] text-[#5A7766]">Top-scoring locations busy today, in driving order</p>
+            <p className="text-[11px] text-[#5A7766]">Recommended locations for {DAY_EN[day]}, in visit order</p>
           </div>
         </div>
       </div>
