@@ -312,7 +312,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-start">
                 {/* Left: plan */}
                 <aside className="space-y-4 lg:sticky lg:top-20">
-                  <TodayPlan center={center} day={day} stops={plan} onSelect={selectFromPlanOrMap} />
+                  <VisitPlan center={center} day={day} stops={plan} onSelect={selectFromPlanOrMap} />
                 </aside>
 
                 {/* Right: filters + list */}
