@@ -27,8 +27,8 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
   const why = whyRecommended(loc, info, day);
 
   const timeLine =
-    info.status === 'today' && info.todaySlot
-      ? `Today ${info.todaySlot.window}`
+  info.status === 'recommended' && info.planDaySlot
+    ? `${DAY_EN[day]} ${info.planDaySlot.window}`
       : info.bestSlot
         ? info.bestSlot.label
         : null;
@@ -148,12 +148,12 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
             <div className="font-bold text-[#1E3A28] mb-1.5">Crowd level by time slot (Google Popular Times, 0–100)</div>
             <div className="grid grid-cols-5 gap-1.5">
               {allSlots(loc).map((s) => {
-                const isToday = s.day === day || (s.day === -1 && day >= 1 && day <= 5);
+                const isPlanDay = s.day === day || (s.day === -1 && day >= 1 && day <= 5);
                 return (
                   <div
                     key={s.label}
                     className={`rounded-lg border px-1.5 py-1.5 text-center ${
-                      isToday ? 'border-[#3B7451] bg-[#EFF6F1]' : 'border-[#E3EDE5] bg-white'
+                      isPlanDay ? 'border-[#3B7451] bg-[#EFF6F1]' : 'border-[#E3EDE5] bg-white'
                     }`}
                   >
                     <div className="text-[10px] text-[#5A7766] leading-tight">{s.label}</div>
@@ -163,13 +163,13 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
               })}
             </div>
             <p className="mt-1 text-[10px] text-[#8AA092]">
-              Weekday data covers 15–18 only (after-school hours). Highlighted = today ({DAY_EN[day]}).
+              Weekday data covers 15–18 only (after-school hours). Highlighted = plan day ({DAY_EN[day]})..
             </p>
           </div>
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
             <div>
-              <dt className="text-[#5A7766]">Opening hours today</dt>
+              <dt className="text-[#5A7766]">Opening hours for {DAY_EN[day]}</dt>
               <dd className="font-semibold">
                 {info.hoursToday ? (info.hoursToday.closed ? 'Closed' : info.hoursToday.text) : 'Not available'}
               </dd>
