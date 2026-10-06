@@ -12,7 +12,7 @@ interface Props {
 }
 
 /** Ordered list of the stops for today + one-click multi-stop Google Maps route. */
-export const TodayPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => {
+export const VisitPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => {
   const url = routeUrl(center, stops.map((s) => s.loc));
   return (
     <section className="bg-white rounded-2xl border border-[#DCE8DE] p-4 sm:p-5">
