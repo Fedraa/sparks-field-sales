@@ -12,7 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { loadFieldData, type FieldDataset } from './data/fieldData';
-import { DAY_EN, orderRoute, todayInfo } from './lib/visitPlan';
+import { DAY_EN, orderRoute, planDayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
 import { VisitPlan } from './components/field/VisitPlan';
@@ -115,7 +115,7 @@ export default function App() {
     if (!data || !center) return [];
     return data.locations
       .filter((l) => l.relevant && l.centerCode === center.code)
-      .map((loc) => ({ loc, info: todayInfo(loc, day) }));
+      .map((loc) => ({ loc, info: planDayInfo(loc, day) }));
   }, [data, center, day]);
 
   const stats = useMemo(() => {
