@@ -141,12 +141,4 @@ export function orderRoute<T extends { lat: number | null; lng: number | null }>
   return [...out, ...left, ...rest];
 }
 
-/** Google Maps multi-stop URL (same format the app already used). */
-export function routeUrl(
-  start: { lat: number | null; lng: number | null },
-  stops: { lat: number | null; lng: number | null }[]
-): string | null {
-  const pts = stops.filter((s) => s.lat !== null && s.lng !== null);
-  if (!pts.length || start.lat === null || start.lng === null) return null;
-  return `https://www.google.com/maps/dir/${start.lat},${start.lng}/${pts.map((s) => `${s.lat},${s.lng}`).join('/')}`;
-}
+
