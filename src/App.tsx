@@ -298,7 +298,7 @@ export default function App() {
 
             {/* Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
-              <Stat label="Best for day" value={stats.today} accent onClick={() => setView('best')} />
+              <Stat label="Best for day" value={stats.recommended} accent onClick={() => setView('best')} />
               <Stat label="Tier A locations" value={stats.tierA} onClick={() => setView('score')} />
               <Stat label="Better another day" value={stats.otherDay} onClick={() => setView('score')} />
               <Stat label="All locations" value={items.length} sub={`${stats.noData} without crowd data`} onClick={() => setView('score')} />
