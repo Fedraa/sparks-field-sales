@@ -7,7 +7,7 @@ import { fmt } from './ui';
 interface Props {
   center: Center;
   day: number;
-  stops: { loc: FieldLocation; info: TodayInfo }[];
+  stops: { loc: FieldLocation; info: PlanDayInfo }[];
   onSelect: (id: string) => void;
 }
 
@@ -51,10 +51,10 @@ export const VisitPlan: React.FC<Props> = ({ center, day, stops, onSelect }) => 
                       <MapPin className="w-3 h-3" />
                       {loc.distanceKm !== null ? `${loc.distanceKm.toFixed(1)} km` : 'n/a'}
                     </span>
-                    {info.todaySlot && (
+                    {info.planDaySlot && (
                       <span className="inline-flex items-center gap-1 text-[#1E5A33] font-semibold">
                         <Clock className="w-3 h-3" />
-                        {info.todaySlot.window} ({fmt(info.todaySlot.value)})
+                        {info.planDaySlot.window} ({fmt(info.planDaySlot.value)})
                       </span>
                     )}
                   </span>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalendarCheck, CalendarClock, Ban, Info } from 'lucide-react';
-import type { TodayInfo } from '../../lib/visitPlan';
+import type { PlanDayInfo } from '../../lib/visitPlan';
 
 export const fmt = (v: number | null | undefined, digits = 0) =>
   v === null || v === undefined ? '–' : v.toFixed(digits);
@@ -42,12 +42,12 @@ export function ScoreBar({ label, value }: { label: string; value: number | null
   );
 }
 
-export function StatusPill({ info, compact = false }: { info: TodayInfo; compact?: boolean }) {
+export function StatusPill({ info, compact = false }: { info: PlanDayInfo; compact?: boolean }) {
   const map = {
-    today: {
+    recommended: {
       cls: 'bg-[#E3F2E7] text-[#1E5A33] border-[#BFE0C9]',
       icon: <CalendarCheck className="w-3.5 h-3.5" />,
-      text: 'Visit today',
+      text: 'Best for day',
     },
     otherDay: {
       cls: 'bg-[#FEF6DC] text-[#865E0C] border-[#F4E1A3]',

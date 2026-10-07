@@ -74,7 +74,7 @@ export function planDayInfo(l: FieldLocation, day: number): PlanDayInfo {
   const withData = allSlots(l).filter((s) => s.value !== null);
   const bestSlot = withData.length ? withData.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
   const planDaySlots = slotsForDay(l, day).filter((s) => s.value !== null);
-  const planDaySlot = today.length ? today.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
+  const planDaySlot = planDaySlots.length ? planDaySlots.reduce((a, b) => (b.value! > a.value! ? b : a)) : null;
   const isBestDay = !!l.popular.bestDay && l.popular.bestDay.toLowerCase() === DAY_ID[day].toLowerCase();
 
   let status: PlanDayStatus;

@@ -11,12 +11,12 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import type { FieldLocation } from '../../data/fieldData';
-import { allSlots, DAY_EN, whyRecommended, type TodayInfo } from '../../lib/visitPlan';
+import { allSlots, DAY_EN, whyRecommended, type PlanDayInfo, } from '../../lib/visitPlan';
 import { ScoreBar, StatusPill, TierBadge, fmt, openExternal } from './ui';
 
 interface Props {
   loc: FieldLocation;
-  info: TodayInfo;
+  info: PlanDayInfo;
   day: number;
   selected?: boolean;
   onSelect?: (id: string) => void;
@@ -171,7 +171,7 @@ export const LocationCard: React.FC<Props> = ({ loc, info, day, selected, onSele
             <div>
               <dt className="text-[#5A7766]">Opening hours for {DAY_EN[day]}</dt>
               <dd className="font-semibold">
-                {info.hoursToday ? (info.hoursToday.closed ? 'Closed' : info.hoursToday.text) : 'Not available'}
+                {info.hoursForPlanDay ? (info.hoursForPlanDay.closed ? 'Closed' : info.hoursForPlanDay.text) : 'Not available'}
               </dd>
             </div>
             <div>
