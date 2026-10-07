@@ -12,13 +12,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { loadFieldData, type FieldDataset } from './data/fieldData';
-import { DAY_EN, orderRoute, planDayInfo } from './lib/visitPlan';
+import { DAY_EN, planDayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
-import { VisitPlan } from './components/field/VisitPlan';
 
 type View = 'best' | 'closest' | 'score';
-const PLAN_SIZE = 5;
 const PAGE = 20;
 const CENTER_KEY = 'sparks.fieldSales.center';
 
@@ -127,17 +125,6 @@ export default function App() {
     return s;
   }, [items]);
 
-  // Today's plan: top-scoring locations that are busy today, in nearest-next order.
-  const plan = useMemo(() => {
-    if (!center) return [];
-    const top = items
-      .filter((x) => x.info.status === 'recommended' && x.loc.scoreTotal !== null)
-      .sort((a, b) => byScore(a.loc, b.loc))
-      .slice(0, PLAN_SIZE);
-    const ordered = orderRoute(center, top.map((x) => x.loc));
-    return ordered.map((loc) => top.find((x) => x.loc.id === loc.id)!);
-  }, [items, center]);
-  const planIds = useMemo(() => plan.map((p) => p.loc.id), [plan]);
 
   // List for the selected view + search.
   const list = useMemo(() => {
@@ -190,7 +177,7 @@ export default function App() {
           </div>
           <div className="min-w-0 hidden sm:block">
             <div className="text-base font-extrabold text-[#173020] leading-tight">Sparks Field Sales</div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#63806F]">Where to go today</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#63806F]">Field Sales Planner</div>
           </div>
 
           <button
@@ -209,6 +196,15 @@ export default function App() {
             </span>
             <ChevronDown className="w-4 h-4 text-[#5A7766] shrink-0" />
           </button>
+
+          <a
+            href="https://script.google.com/macros/s/AKfycbx8rj3_6MzBicMtIOwRgqpwDEUKJUDLezGbsR70ZBipHELnCUZ3ClJnYOmnrBvt9oF7_g/exec"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] hover:bg-[#EFF6F1] text-xs font-bold transition-colors shrink-0"
+          >
+            <span>Report EC</span>
+          </a>
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
             <label className="text-[11px] font-semibold text-[#5A7766]" htmlFor="day">
@@ -309,12 +305,8 @@ export default function App() {
                 No relevant locations are assigned to this center yet in the POI sheet.
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-start">
-                {/* Left: plan */}
-                <aside className="space-y-4 lg:sticky lg:top-20">
-                  <VisitPlan center={center} day={day} stops={plan} onSelect={selectFromPlanOrMap} />
-                </aside>
-
+              <div className="w-full">
+                
                 {/* Right: filters + list */}
                 <section className="min-w-0">
                   <div className="bg-white rounded-2xl border border-[#DCE8DE] p-2 sm:p-3 mb-3 flex flex-col sm:flex-row gap-2 sm:items-center">
