@@ -17,6 +17,7 @@ import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
 
 type View = 'best' | 'closest' | 'score';
+type BestSort = 'score' | 'fit' | 'timeAsc' | 'timeDesc';
 const PAGE = 20;
 const CENTER_KEY = 'sparks.fieldSales.center';
 
@@ -52,6 +53,7 @@ export default function App() {
   const [data, setData] = useState<FieldDataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bestSort, setBestSort] = useState<BestSort>('score');
 
   const [centerCode, setCenterCode] = useState<string | null>(() => storage.get(CENTER_KEY));
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -75,6 +77,30 @@ export default function App() {
     }
   }, []);
 
+    const getPlanDayStartHour = (window: string | undefined) => {
+    if (!window) return 999;
+    const match = window.match(/^(\d{1,2})/);
+    return match ? Number(match[1]) : 999;
+    };
+
+    const getBestDayFit = (item: {
+    loc: { scoreTotal: number | null };
+    info: {
+      planDaySlot: { value: number | null } | null;
+      isBestDay: boolean;
+    };
+    }) => {
+    const score = item.loc.scoreTotal ?? 0;
+    const crowd = item.info.planDaySlot?.value ?? 0;
+    const bestDayBonus = item.info.isBestDay ? 100 : 0;
+
+    return (
+      score * 0.6 +
+      crowd * 0.3 +
+      bestDayBonus * 0.1
+    );
+    };
+
   useEffect(() => {
     load();
   }, [load]);
@@ -92,6 +118,8 @@ export default function App() {
     () => data?.centers.find((c) => c.code === centerCode) || null,
     [data, centerCode]
   );
+
+  
 
   // Open the picker when no (valid) center is selected yet.
   useEffect(() => {
@@ -135,7 +163,40 @@ export default function App() {
     );
     switch (view) {
       case 'best':
-        arr = arr.filter((x) => x.info.status === 'recommended').sort((a, b) => byScore(a.loc, b.loc));
+        arr = arr.filter((x) => x.info.status === 'recommended');
+
+        switch (bestSort) {
+          case 'score':
+            arr.sort((a, b) => byScore(a.loc, b.loc));
+            break;
+
+          case 'fit':
+            arr.sort(
+              (a, b) =>
+                getBestDayFit(b) - getBestDayFit(a) ||
+                byScore(a.loc, b.loc)
+            );
+            break;
+
+          case 'timeAsc':
+            arr.sort(
+              (a, b) =>
+                getPlanDayStartHour(a.info.planDaySlot?.window) -
+                getPlanDayStartHour(b.info.planDaySlot?.window) ||
+                byScore(a.loc, b.loc)
+            );
+            break;
+
+          case 'timeDesc':
+            arr.sort(
+              (a, b) =>
+                getPlanDayStartHour(b.info.planDaySlot?.window) -
+                getPlanDayStartHour(a.info.planDaySlot?.window) ||
+                byScore(a.loc, b.loc)
+            );
+            break;
+        }
+
         break;
       case 'closest':
         arr = [...arr].sort((a, b) => byDistance(a.loc, b.loc));
@@ -145,7 +206,7 @@ export default function App() {
         break;
     }
     return arr;
-  }, [items, view, query]);
+  }, [items, view, query, bestSort]);
 
   useEffect(() => setVisible(PAGE), [view, query, day, centerCode]);
 
@@ -198,7 +259,7 @@ export default function App() {
           </button>
 
           <a
-            href="https://script.google.com/macros/s/AKfycbx8rj3_6MzBicMtIOwRgqpwDEUKJUDLezGbsR70ZBipHELnCUZ3ClJnYOmnrBvt9oF7_g/exec"
+            href="https://script.google.com/macros/s/AKfycbzxwe1X_36BIJFIbN-pKy6j0eiUh778h2BQcNl2SGfjgiGUgfXGEHeSIphKAXXgGLLKrg/exec"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] hover:bg-[#EFF6F1] text-xs font-bold transition-colors shrink-0"
@@ -306,37 +367,68 @@ export default function App() {
               </div>
             ) : (
               <div className="w-full">
-                
                 {/* Right: filters + list */}
-                <section className="min-w-0">
-                  <div className="bg-white rounded-2xl border border-[#DCE8DE] p-2 sm:p-3 mb-3 flex flex-col sm:flex-row gap-2 sm:items-center">
-                    <div className="flex gap-1.5 overflow-x-auto -mx-0.5 px-0.5 pb-0.5">
-                      {VIEWS.map((v) => (
-                        <button
-                          key={v.id}
-                          onClick={() => setView(v.id)}
-                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                            view === v.id
-                              ? 'bg-[#254C33] text-white border-[#254C33]'
-                              : 'bg-white text-[#295637] border-[#D5E5DA] hover:bg-[#EFF6F1]'
-                          }`}
-                        >
-                          {v.icon}
-                          {v.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="relative sm:ml-auto sm:w-64">
-                      <Search className="w-4 h-4 text-[#7E9787] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search location…"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D5E5DA] bg-[#F8FAF8] text-sm focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
-                      />
-                    </div>
-                  </div>
+                  <section className="min-w-0">
 
+                    {/* Main view buttons */}
+                    <div className="bg-white rounded-2xl border border-[#DCE8DE] p-2 sm:p-3 mb-3">
+                      <div className="flex gap-1.5 overflow-x-auto -mx-0.5 px-0.5 pb-0.5">
+                        {VIEWS.map((v) => (
+                          <button
+                            key={v.id}
+                            onClick={() => setView(v.id)}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                              view === v.id
+                                ? 'bg-[#254C33] text-white border-[#254C33]'
+                                : 'bg-white text-[#295637] border-[#D5E5DA] hover:bg-[#EFF6F1]'
+                            }`}
+                          >
+                            {v.icon}
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sort + Search */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+
+                      {/* Best for Day sorting */}
+                      {view === 'best' && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-bold text-[#295637]">
+                            Sort by
+                          </span>
+
+                          <select
+                            value={bestSort}
+                            onChange={(e) =>
+                              setBestSort(e.target.value as BestSort)
+                            }
+                            className="text-xs font-bold text-[#295637] bg-white border border-[#D5E5DA] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
+                            aria-label="Sort Best for Day"
+                          >
+                            <option value="score">Highest Total Score</option>
+                            <option value="fit">Best Day Fit</option>
+                            <option value="timeAsc">Morning → Evening</option>
+                            <option value="timeDesc">Evening → Morning</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Search */}
+                      <div className="relative sm:ml-auto w-full sm:w-64">
+                        <Search className="w-4 h-4 text-[#7E9787] absolute left-3 top-1/2 -translate-y-1/2" />
+
+                        <input
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          placeholder="Search location…"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D5E5DA] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
+                        />
+                      </div>
+
+                    </div>
                   <p className="text-xs text-[#5A7766] mb-3 px-1">
                     {list.length} location{list.length === 1 ? '' : 's'}
                     {view === 'best' && ` with strong crowd data for ${DAY_EN[day]} (Popular Times ≥ 50 or busiest day)`}
