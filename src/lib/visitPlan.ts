@@ -26,11 +26,11 @@ export interface Slot {
 export function allSlots(l: FieldLocation): Slot[] {
   const p = l.popular;
   return [
-    { label: 'Sat 09–12', day: 6, window: '09–12', value: p.sat0912 },
-    { label: 'Sat 15–18', day: 6, window: '15–18', value: p.sat1518 },
-    { label: 'Sun 09–12', day: 0, window: '09–12', value: p.sun0912 },
-    { label: 'Sun 15–18', day: 0, window: '15–18', value: p.sun1518 },
-    { label: 'Mon–Fri 15–18', day: -1, window: '15–18', value: p.weekday1518 },
+    { label: 'Sab 09–12', day: 6, window: '09–12', value: p.sat0912 },
+    { label: 'Sab 15–18', day: 6, window: '15–18', value: p.sat1518 },
+    { label: 'Min 09–12', day: 0, window: '09–12', value: p.sun0912 },
+    { label: 'Min 15–18', day: 0, window: '15–18', value: p.sun1518 },
+    { label: 'Sen–Jum 15–18', day: -1, window: '15–18', value: p.weekday1518 },
   ];
 }
 
@@ -63,9 +63,12 @@ export type PlanDayStatus = 'recommended' | 'otherDay' | 'noData' | 'closed';
 
 export interface PlanDayInfo {
   status: PlanDayStatus;
-  planDaySlot: Slot | null; // strongest slot today (with data)
-  bestSlot: Slot | null; // strongest slot of the week (with data)
-  hoursForPlanDay: { text: string; closed: boolean } | null;
+  planDaySlot: Slot | null;
+  bestSlot: Slot | null;
+  hoursForPlanDay: {
+    text: string;
+    closed: boolean;
+  } | null;
   isBestDay: boolean;
 }
 
@@ -92,26 +95,26 @@ export function whyRecommended(l: FieldLocation, info: PlanDayInfo, day: number)
   const out: string[] = [];
   if (l.rankInCenter !== null && l.scoreTotal !== null) {
     out.push(
-      `Ranked #${l.rankInCenter} of ${l.centerTotal} in ${l.centerCode} with a total score of ${fmt(l.scoreTotal)}` +
+      `Peringkat #${l.rankInCenter} dari ${l.centerTotal} di ${l.centerCode} dengan skor total ${fmt(l.scoreTotal)}` +
         (l.tier ? ` (Tier ${l.tier})` : '') +
         '.'
     );
   }
   const pillars: [string, number | null][] = [
     ['traffic', l.trafficScore],
-    ['family fit', l.familyScore],
-    ['middle-segment fit', l.segmentScore],
+    ['kesesuaian keluarga', l.familyScore],
+    ['kesesuaian segmen menengah', l.segmentScore],
   ];
   const strong = pillars.filter(([, v]) => v !== null && v >= 75).map(([k, v]) => `${k} ${fmt(v)}`);
-  if (strong.length) out.push(`Strong ${strong.join(', ')}.`);
+  if (strong.length) out.push(`Kuat pada ${strong.join(', ')}.`);
   if (info.status === 'recommended' && info.planDaySlot) {
-    out.push(`Busy on ${DAY_ID[day]} ${info.planDaySlot.window} (${fmt(info.planDaySlot.value)}/100)${info.isBestDay ? ` — ${DAY_ID[day]} is its best day` : ''}.`);
+    out.push(`Ramai pada ${DAY_ID[day]} ${info.planDaySlot.window} (${fmt(info.planDaySlot.value)}/100)${info.isBestDay ? ` — ${DAY_ID[day]} adalah hari tersibuknya` : ''}.`);
   } else if (info.status === 'recommended' && info.isBestDay) {
-    out.push(`${DAY_ID[day]} is its busiest day.`);
+    out.push(`${DAY_ID[day]} adalah hari tersibuknya.`);
   } else if (info.status === 'otherDay' && info.bestSlot) {
-    out.push(`Quieter on ${DAY_ID[day]}; busiest at ${info.bestSlot.label} (${fmt(info.bestSlot.value)}/100).`);
+    out.push(`Lebih sepi pada ${DAY_ID[day]}; paling ramai pada ${info.bestSlot.label} (${fmt(info.bestSlot.value)}/100).`);
   }
-  if (l.distanceKm !== null && l.distanceKm <= 2) out.push(`Close to the center (${l.distanceKm.toFixed(1)} km).`);
+  if (l.distanceKm !== null && l.distanceKm <= 2) out.push(`Dekat dengan Center (${l.distanceKm.toFixed(1)} km).`);
   return out;
 }
 

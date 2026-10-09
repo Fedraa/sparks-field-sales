@@ -9,7 +9,7 @@ export function TierBadge({ tier }: { tier: string }) {
   if (!tier) {
     return (
       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F1F4F2] text-[#6B7F72] border border-[#E1E8E3]">
-        No tier
+        Tanpa tier
       </span>
     );
   }
@@ -19,7 +19,7 @@ export function TierBadge({ tier }: { tier: string }) {
       : tier === 'B'
         ? 'bg-[#FEF6DC] text-[#865E0C] border-[#F4E1A3]'
         : 'bg-[#F1F4F2] text-[#5A6E61] border-[#E1E8E3]';
-  const label = tier === 'A' ? 'Tier A · Priority' : tier === 'B' ? 'Tier B · Backup' : `Tier ${tier} · Later`;
+  const label = tier === 'A' ? 'Tier A · Prioritas' : tier === 'B' ? 'Tier B · Cadangan' : `Tier ${tier} · Nanti`;
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap ${style}`}>{label}</span>;
 }
 
@@ -47,22 +47,22 @@ export function StatusPill({ info, compact = false }: { info: PlanDayInfo; compa
     recommended: {
       cls: 'bg-[#E3F2E7] text-[#1E5A33] border-[#BFE0C9]',
       icon: <CalendarCheck className="w-3.5 h-3.5" />,
-      text: 'Best for day',
+      text: 'Rekomendasi hari',
     },
     otherDay: {
       cls: 'bg-[#FEF6DC] text-[#865E0C] border-[#F4E1A3]',
       icon: <CalendarClock className="w-3.5 h-3.5" />,
-      text: 'Better another day',
+      text: 'Lebih baik hari lain',
     },
     noData: {
       cls: 'bg-[#F1F4F2] text-[#5A6E61] border-[#E1E8E3]',
       icon: <Info className="w-3.5 h-3.5" />,
-      text: 'No crowd data',
+      text: 'Tidak ada data keramaian',
     },
     closed: {
       cls: 'bg-[#FBECEC] text-[#9B3B3B] border-[#F1D2D2]',
       icon: <Ban className="w-3.5 h-3.5" />,
-      text: 'Closed today',
+      text: 'Tutup pada hari yang dipilih',
     },
   }[info.status];
   return (

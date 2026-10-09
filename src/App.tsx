@@ -12,7 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { loadFieldData, type FieldDataset } from './data/fieldData';
-import { DAY_EN, planDayInfo } from './lib/visitPlan';
+import { DAY_ID, DAY_EN, planDayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
 
@@ -39,9 +39,9 @@ const storage = {
 };
 
 const VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: 'best', label: 'Best for Day', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
-  { id: 'closest', label: 'Closest', icon: <Navigation className="w-3.5 h-3.5" /> },
-  { id: 'score', label: 'Highest Score', icon: <Trophy className="w-3.5 h-3.5" /> },
+  { id: 'best', label: 'Rekomendasi Terbaik', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
+  { id: 'closest', label: 'Terdekat', icon: <Navigation className="w-3.5 h-3.5" /> },
+  { id: 'score', label: 'Skor Tertinggi', icon: <Trophy className="w-3.5 h-3.5" /> },
 ];
 
 const byScore = (a: { scoreTotal: number | null }, b: { scoreTotal: number | null }) =>
@@ -71,7 +71,7 @@ export default function App() {
     try {
       setData(await loadFieldData(refresh));
     } catch (e: any) {
-      setError(e?.message || 'Could not load location data.');
+      setError(e?.message || 'Gagal memuat data lokasi.');
     } finally {
       setLoading(false);
     }
@@ -83,23 +83,29 @@ export default function App() {
     return match ? Number(match[1]) : 999;
     };
 
-    const getBestDayFit = (item: {
+  const BEST_DAY_FIT_WEIGHTS = {
+    score: 0.6,
+    crowd: 0.3,
+    bestDay: 0.1,
+  };
+
+  const getBestDayFit = (item: {
     loc: { scoreTotal: number | null };
     info: {
       planDaySlot: { value: number | null } | null;
       isBestDay: boolean;
     };
-    }) => {
+  }) => {
     const score = item.loc.scoreTotal ?? 0;
     const crowd = item.info.planDaySlot?.value ?? 0;
     const bestDayBonus = item.info.isBestDay ? 100 : 0;
 
     return (
-      score * 0.6 +
-      crowd * 0.3 +
-      bestDayBonus * 0.1
+      score * BEST_DAY_FIT_WEIGHTS.score +
+      crowd * BEST_DAY_FIT_WEIGHTS.crowd +
+      bestDayBonus * BEST_DAY_FIT_WEIGHTS.bestDay
     );
-    };
+  };
 
   useEffect(() => {
     load();
@@ -210,12 +216,6 @@ export default function App() {
 
   useEffect(() => setVisible(PAGE), [view, query, day, centerCode]);
 
-  const selectFromPlanOrMap = useCallback((id: string) => {
-    setSelectedId(id);
-    // the card is rendered (pinned on top if outside the current list), then scrolled into view
-    setTimeout(() => document.getElementById(`loc-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-  }, []);
-
   // If the selected location is not in the current list, show it at the top so the scroll target exists.
   const shown = useMemo(() => {
     const base = list.slice(0, visible);
@@ -226,7 +226,7 @@ export default function App() {
     return base;
   }, [list, visible, selectedId, items]);
 
-  const dateLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateLabel = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="min-h-screen bg-[#F7F9F6] text-[#1E2E24] flex flex-col selection:bg-[#D5EADB] selection:text-[#183622]">
@@ -238,7 +238,7 @@ export default function App() {
           </div>
           <div className="min-w-0 hidden sm:block">
             <div className="text-base font-extrabold text-[#173020] leading-tight">Sparks Field Sales</div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#63806F]">Field Sales Planner</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#63806F]">Perencana Field Sales</div>
           </div>
 
           <button
@@ -250,9 +250,9 @@ export default function App() {
               {center?.code || <MapPin className="w-3.5 h-3.5" />}
             </span>
             <span className="text-left min-w-0">
-              <span className="block text-[10px] font-bold uppercase tracking-wide text-[#6B8574] leading-none">Your center</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wide text-[#6B8574] leading-none">Pilih Center</span>
               <span className="block text-sm font-bold text-[#1E3A28] truncate max-w-[42vw] sm:max-w-[260px]">
-                {center ? center.name.replace('Sparks Center - ', '') : 'Select center'}
+                {center ? center.name.replace('Sparks Center - ', '') : 'Pilih Center'}
               </span>
             </span>
             <ChevronDown className="w-4 h-4 text-[#5A7766] shrink-0" />
@@ -269,7 +269,7 @@ export default function App() {
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
             <label className="text-[11px] font-semibold text-[#5A7766]" htmlFor="day">
-              Plan for
+              Rencanakan untuk
             </label>
             <select
               id="day"
@@ -277,15 +277,15 @@ export default function App() {
               onChange={(e) => setDay(Number(e.target.value))}
               className="text-sm font-semibold text-[#1E3A28] bg-white border border-[#D5E5DA] rounded-lg px-2 py-1.5"
             >
-              {DAY_EN.map((d, i) => (
+              {DAY_ID.map((d, i) => (
                 <option key={d} value={i}>
-                  {i === todayIdx ? `Today (${d})` : d}
+                  {i === todayIdx ? `Hari ini (${d})` : d}
                 </option>
               ))}
             </select>
             <button
               onClick={() => load(true)}
-              title="Reload data from the sheet"
+              title="Muat ulang data dari sheet"
               className="p-2 rounded-lg border border-[#D5E5DA] text-[#356B48] hover:bg-[#EFF6F1]"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -299,7 +299,7 @@ export default function App() {
         {loading && !data && (
           <div className="flex flex-col items-center justify-center py-24 text-[#5A7766]">
             <Loader2 className="w-7 h-7 animate-spin text-[#356B48]" />
-            <p className="mt-3 text-sm">Loading locations from the POI sheet…</p>
+            <p className="mt-3 text-sm">Memuat data lokasi dari POI sheet…</p>
           </div>
         )}
         {error && (
@@ -307,13 +307,13 @@ export default function App() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-[#B85C5C] shrink-0 mt-0.5" />
               <div>
-                <h2 className="font-bold text-[#7A2E2E]">Couldn't load location data</h2>
+                <h2 className="font-bold text-[#7A2E2E]">Gagal memuat data lokasi</h2>
                 <p className="text-sm text-[#5A4A4A] mt-1">{error}</p>
                 <button
                   onClick={() => load(true)}
                   className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#254C33] text-white text-xs font-bold"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Try again
+                  <RefreshCw className="w-3.5 h-3.5" /> Coba lagi
                 </button>
               </div>
             </div>
@@ -327,7 +327,7 @@ export default function App() {
               <div>
                 <p className="text-xs font-semibold text-[#5A7766]">{dateLabel}</p>
                 <h1 className="text-xl sm:text-2xl font-extrabold text-[#173020]">
-                  Best locations for {DAY_EN[day]} near{' '}
+                  Lokasi terbaik untuk {DAY_ID[day]} di sekitar{' '}
                   {center.name.replace('Sparks Center - ', '')}
                 </h1>
               </div>
@@ -337,16 +337,16 @@ export default function App() {
                   onChange={(e) => setDay(Number(e.target.value))}
                   className="text-sm font-semibold bg-white border border-[#D5E5DA] rounded-lg px-2 py-1.5"
                 >
-                  {DAY_EN.map((d, i) => (
+                  {DAY_ID.map((d, i) => (
                     <option key={d} value={i}>
-                      {i === todayIdx ? `Today (${d})` : d}
+                      {i === todayIdx ? `Hari ini (${d})` : d}
                     </option>
                   ))}
                 </select>
                 <button
                   onClick={() => load(true)}
                   className="p-2 rounded-lg border border-[#D5E5DA] bg-white text-[#356B48]"
-                  aria-label="Reload data"
+                  aria-label="Muat ulang data"
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -355,15 +355,15 @@ export default function App() {
 
             {/* Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
-              <Stat label="Best for day" value={stats.recommended} accent onClick={() => setView('best')} />
-              <Stat label="Tier A locations" value={stats.tierA} onClick={() => setView('score')} />
-              <Stat label="Better another day" value={stats.otherDay} onClick={() => setView('score')} />
-              <Stat label="All locations" value={items.length} sub={`${stats.noData} without crowd data`} onClick={() => setView('score')} />
+              <Stat label="Rekomendasi hari" value={stats.recommended} accent onClick={() => setView('best')} />
+              <Stat label="Lokasi Tier A" value={stats.tierA} onClick={() => setView('score')} />
+              <Stat label="Lebih baik hari lain" value={stats.otherDay} onClick={() => setView('score')} />
+              <Stat label="Semua lokasi" value={items.length} sub={`${stats.noData} tanpa data keramaian`} onClick={() => setView('score')} />
             </div>
 
             {items.length === 0 ? (
               <div className="bg-white border border-[#DCE8DE] rounded-2xl p-8 text-center text-sm text-[#5A7766]">
-                No relevant locations are assigned to this center yet in the POI sheet.
+                Belum ada lokasi relevan yang ditugaskan ke Center ini di POI sheet.
               </div>
             ) : (
               <div className="w-full">
@@ -397,7 +397,7 @@ export default function App() {
                       {view === 'best' && (
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs font-bold text-[#295637]">
-                            Sort by
+                            Urutkan berdasarkan
                           </span>
 
                           <select
@@ -406,12 +406,12 @@ export default function App() {
                               setBestSort(e.target.value as BestSort)
                             }
                             className="text-xs font-bold text-[#295637] bg-white border border-[#D5E5DA] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
-                            aria-label="Sort Best for Day"
+                            aria-label="Urutkan Rekomendasi Hari"
                           >
-                            <option value="score">Highest Total Score</option>
-                            <option value="fit">Best Day Fit</option>
-                            <option value="timeAsc">Morning → Evening</option>
-                            <option value="timeDesc">Evening → Morning</option>
+                            <option value="score">Skor Total Tertinggi</option>
+                            <option value="fit">Paling Cocok untuk Hari</option>
+                            <option value="timeAsc">Waktu Keramaian: Pagi → Sore</option>
+                            <option value="timeDesc">Waktu Keramaian: Sore → Pagi</option>
                           </select>
                         </div>
                       )}
@@ -423,24 +423,24 @@ export default function App() {
                         <input
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
-                          placeholder="Search location…"
+                          placeholder="Cari lokasi…"
                           className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D5E5DA] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
                         />
                       </div>
 
                     </div>
                   <p className="text-xs text-[#5A7766] mb-3 px-1">
-                    {list.length} location{list.length === 1 ? '' : 's'}
-                    {view === 'best' && ` with strong crowd data for ${DAY_EN[day]} (Popular Times ≥ 50 or busiest day)`}
-                    {view === 'closest' && ' sorted by distance from the center'}
-                    {view === 'score' && ' sorted by total score'}
+                    {list.length} lokasi
+                    {view === 'best' && ` dengan data keramaian yang kuat untuk ${DAY_ID[day]} (Popular Times ≥ 50 atau hari tersibuk)`}
+                    {view === 'closest' && ' diurutkan berdasarkan jarak terdekat dari Center'}
+                    {view === 'score' && ' diurutkan berdasarkan skor total'}
                   </p>
 
                   {list.length === 0 && (
                     <div className="bg-white border border-[#DCE8DE] rounded-2xl p-6 text-sm text-[#5A7766]">
                       {view === 'best'
-                        ? `No location has strong crowd data for ${DAY_EN[day]}. Try "Highest Score" or "Closest".`
-                        : 'No locations match this filter.'}
+                        ? `Tidak ada lokasi dengan data keramaian yang kuat untuk ${DAY_ID[day]}. Coba "Skor Tertinggi" atau "Terdekat".`
+                        : 'Tidak ada lokasi yang cocok dengan filter ini.'}
                     </div>
                   )}
 
@@ -463,7 +463,7 @@ export default function App() {
                       onClick={() => setVisible((v) => v + PAGE)}
                       className="mt-4 w-full px-4 py-2.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] text-sm font-bold hover:bg-[#EFF6F1]"
                     >
-                      Show more ({list.length - visible} remaining)
+                      Tampilkan lebih banyak ({list.length - visible} tersisa)
                     </button>
                   )}
                 </section>
@@ -471,8 +471,8 @@ export default function App() {
             )}
 
             <p className="mt-8 text-[11px] text-[#8AA092] text-center">
-              Scores, tiers and crowd data come from the POI Analysis sheet · loaded{' '}
-              {data.loadedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+              Skor, tier, dan data keramaian berasal dari sheet POI Analysis · dimuat pada{' '}
+              {data.loadedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </p>
           </>
         )}

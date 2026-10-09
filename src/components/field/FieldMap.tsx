@@ -1,18 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { Center, FieldLocation } from '../../data/fieldData';
-import type { TodayStatus } from '../../lib/visitPlan';
+import type { PlanDayStatus } from '../../lib/visitPlan';
 
 interface Props {
   center: Center;
-  items: { loc: FieldLocation; status: TodayStatus }[];
+  items: { loc: FieldLocation; status: PlanDayStatus }[];
   planIds: string[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-const COLORS: Record<TodayStatus, string> = {
-  today: '#2E7D4F',
+const COLORS: Record<PlanDayStatus, string> = {
+  recommended: '#2E7D4F',
   otherDay: '#C4951B',
   noData: '#8FA597',
   closed: '#B85C5C',
@@ -98,11 +98,11 @@ export const FieldMap: React.FC<Props> = ({ center, items, planIds, selectedId, 
     <div className="bg-white rounded-2xl border border-[#DCE8DE] overflow-hidden">
       <div ref={box} className="h-64 lg:h-72 w-full" />
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 text-[10px] text-[#5A7766] border-t border-[#EEF4EF]">
-        <Legend color="#254C33" label="Today's plan" />
-        <Legend color={COLORS.today} label="Visit today" />
-        <Legend color={COLORS.otherDay} label="Another day" />
-        <Legend color={COLORS.noData} label="No crowd data" />
-        <Legend color={COLORS.closed} label="Closed today" />
+        <Legend color="#254C33" label="Rencana hari ini" />
+        <Legend color={COLORS.recommended} label="Rekomendasi hari" />
+        <Legend color={COLORS.otherDay} label="Hari lain" />
+        <Legend color={COLORS.noData} label="Tidak ada data keramaian" />
+        <Legend color={COLORS.closed} label="Tutup pada hari yang dipilih" />
       </div>
     </div>
   );
