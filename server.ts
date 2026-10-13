@@ -129,7 +129,7 @@ Ensure the venues mentioned are authentic, localized landmarks and relevant hubs
 // Returns the raw CSV of one tab (all rows, no header guessing: headers=0).
 // ---------------------------------------------------------------------------
 const POI_SHEET_ID = process.env.POI_SHEET_ID || '1IVSxzJd7mKjO6TAH8emDBWM_FZeks20TfJeHQ-AH4sY';
-const ALLOWED_TABS = new Set(['Centers', 'Master_POI', 'Scoring', 'Traffic', 'Audiens', 'MAP_KATEGORI']);
+const ALLOWED_TABS = new Set(['Centers', 'Master_POI', 'Scoring_Rev', 'Traffic', 'Audiens', 'MAP_KATEGORI']);
 const SHEET_CACHE_MS = 5 * 60 * 1000;
 const sheetCache = new Map<string, { at: number; csv: string }>();
 

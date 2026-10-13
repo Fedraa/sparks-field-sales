@@ -173,7 +173,7 @@ export async function loadFieldData(refresh = false): Promise<FieldDataset> {
   const [centersCsv, masterCsv, scoringCsv, trafficCsv, audiensCsv, mapCsv] = await Promise.all([
     fetchTab('Centers', refresh),
     fetchTab('Master_POI', refresh),
-    fetchTab('Scoring', refresh),
+    fetchTab('Scoring_Rev', refresh),
     fetchTab('Traffic', refresh),
     fetchTab('Audiens', refresh).catch(() => ''), // optional
     fetchTab('MAP_KATEGORI', refresh).catch(() => ''), // optional
