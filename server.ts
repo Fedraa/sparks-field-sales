@@ -164,6 +164,336 @@ app.get('/api/sheet/:tab', async (req, res) => {
   }
 });
 
+
+/* ---------------------------------------------------------------------------
+ * Read-only EC visit report endpoint.
+ *
+ * Source: Clean_EC_Visits in POI_SHEET_ID.
+ * Returns only fields needed by the Laporan EC frontend.
+ * Does NOT return Parent, Phone, Child, DOB, Age, or raw response payloads.
+ * --------------------------------------------------------------------------- */
+
+const EC_VISITS_TAB = 'Clean_EC_Visits';
+const EC_VISITS_CACHE_MS = 60 * 1000;
+
+let ecVisitsCache: {
+  at: number;
+  data: ECVisitApiRow[];
+} | null = null;
+
+type ECVisitApiRow = {
+  timestamp: string;
+  ec: string;
+  locationName: string;
+  namaLokasiStandard?: string;
+  center: string;
+  centerNearest: string;
+  buEntries: {
+    bu: string;
+    center: string;
+    status: string;
+    ageGroup: string;
+    classDate: string;
+    classTime: string;
+    className: string;
+    room: string;
+  }[];
+};
+
+/**
+ * Parse CSV safely, including quoted fields, commas, and line breaks.
+ */
+function parseCSV(csv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (csv[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"' && field.length === 0) {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field);
+      field = '';
+    } else if (char === '\n' || char === '\r') {
+      if (char === '\r' && csv[i + 1] === '\n') i++;
+
+      row.push(field);
+      field = '';
+
+      // Ignore completely empty rows.
+      if (row.some((value) => value.trim() !== '')) {
+        rows.push(row);
+      }
+
+      row = [];
+    } else {
+      field += char;
+    }
+  }
+
+  // Include the final row if the CSV does not end with a newline.
+  row.push(field);
+  if (row.some((value) => value.trim() !== '')) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function normalizeECHeader(value: string): string {
+  return value
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '_');
+}
+
+function getECValue(
+  row: string[],
+  headerIndexes: Map<string, number>,
+  headerNames: string[],
+  fallbackIndex?: number,
+): string {
+  for (const name of headerNames) {
+    const index = headerIndexes.get(normalizeECHeader(name));
+    if (index !== undefined && row[index] !== undefined) {
+      return String(row[index] ?? '').trim();
+    }
+  }
+  if (fallbackIndex !== undefined && fallbackIndex < row.length) {
+    return String(row[fallbackIndex] ?? '').trim();
+  }
+  return '';
+}
+
+app.get('/api/ec-visits', async (req, res) => {
+  try {
+    const fresh = req.query.refresh === '1';
+
+    if (
+      ecVisitsCache &&
+      !fresh &&
+      Date.now() - ecVisitsCache.at < EC_VISITS_CACHE_MS
+    ) {
+      res.set('Cache-Control', 'no-store');
+      return res.json({
+        success: true,
+        data: ecVisitsCache.data,
+        cached: true,
+      });
+    }
+
+    // Use headers=1 so Google Sheets returns canonical column labels (e.g. _source_timestamp, EC, BU1-8, Nama_Lokasi_Standard)
+    const url =
+      `https://docs.google.com/spreadsheets/d/${POI_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=` +
+      encodeURIComponent(EC_VISITS_TAB);
+
+    const response = await fetch(url);
+    const csv = await response.text();
+
+    if (!response.ok || csv.trim().startsWith('<')) {
+      console.error(
+        `Could not read ${EC_VISITS_TAB}: HTTP ${response.status}`,
+      );
+
+      return res.status(502).json({
+        success: false,
+        error:
+          'Could not read EC visit data. Check spreadsheet sharing and the Clean_EC_Visits tab.',
+      });
+    }
+
+    const csvRows = parseCSV(csv);
+
+    if (csvRows.length === 0) {
+      ecVisitsCache = { at: Date.now(), data: [] };
+      res.set('Cache-Control', 'no-store');
+      return res.json({
+        success: true,
+        data: [],
+        cached: false,
+      });
+    }
+
+    // Clean_EC_Visits has a header row.
+    const headers = csvRows[0].map(normalizeECHeader);
+    const headerIndexes = new Map<string, number>();
+
+    headers.forEach((header, index) => {
+      if (header && !headerIndexes.has(header)) {
+        headerIndexes.set(header, index);
+      }
+    });
+
+    // Validate the columns required by the report.
+    const requiredHeaderGroups = [
+      { name: '_source_timestamp', candidates: ['_source_timestamp', 'source_timestamp', 'timestamp'], fallbackCol: 0 },
+      { name: 'ec', candidates: ['ec', 'agent'], fallbackCol: 4 },
+      { name: 'nama_lokasi_standard', candidates: ['nama_lokasi_standard', 'namalokasistandard'], fallbackCol: 78 },
+      { name: 'center_terdekat', candidates: ['center_terdekat', 'centerterdekat'], fallbackCol: 79 },
+    ];
+
+    const missingHeaders = requiredHeaderGroups
+      .filter((group) => {
+        const foundByName = group.candidates.some((c) => headerIndexes.has(normalizeECHeader(c)));
+        const foundByCol = group.fallbackCol < csvRows[0].length;
+        return !foundByName && !foundByCol;
+      })
+      .map((g) => g.name);
+
+    if (missingHeaders.length > 0) {
+      console.error('EC report missing headers:', missingHeaders);
+
+      return res.status(500).json({
+        success: false,
+        error:
+          'Clean_EC_Visits is missing required columns. Check its header row.',
+        missingHeaders,
+      });
+    }
+
+    const data: ECVisitApiRow[] = csvRows
+      .slice(1)
+      .map((row): ECVisitApiRow => {
+        const buEntries: ECVisitApiRow['buEntries'] = [];
+
+        for (let i = 1; i <= 8; i++) {
+          const bu = getECValue(
+            row,
+            headerIndexes,
+            [`BU${i}`, `bu_${i}`, `bu${i}`],
+            13 + (i - 1) * 8,
+          );
+
+          // Only return BU slots that contain an actual BU value.
+          if (!bu) continue;
+
+          buEntries.push({
+            bu,
+            center: getECValue(
+              row,
+              headerIndexes,
+              [`Center${i}`, `center_${i}`, `center${i}`],
+              14 + (i - 1) * 8,
+            ),
+            status: getECValue(
+              row,
+              headerIndexes,
+              [`Status${i}`, `status_${i}`, `status${i}`],
+              15 + (i - 1) * 8,
+            ),
+            ageGroup: getECValue(
+              row,
+              headerIndexes,
+              [`AgeGroup${i}`, `age_group_${i}`, `agegroup${i}`],
+              16 + (i - 1) * 8,
+            ),
+            classDate: getECValue(
+              row,
+              headerIndexes,
+              [`ClassDate${i}`, `class_date_${i}`, `classdate${i}`],
+              17 + (i - 1) * 8,
+            ),
+            classTime: getECValue(
+              row,
+              headerIndexes,
+              [`ClassTime${i}`, `class_time_${i}`, `classtime${i}`],
+              18 + (i - 1) * 8,
+            ),
+            className: getECValue(
+              row,
+              headerIndexes,
+              [`Class${i}`, `class_${i}`, `className${i}`, `classname${i}`],
+              19 + (i - 1) * 8,
+            ),
+            room: getECValue(
+              row,
+              headerIndexes,
+              [`Room${i}`, `room_${i}`, `room${i}`],
+              20 + (i - 1) * 8,
+            ),
+          });
+        }
+
+        const timestamp = getECValue(
+          row,
+          headerIndexes,
+          ['_source_timestamp', 'source_timestamp', 'timestamp', 'date'],
+          0,
+        );
+        const ec = getECValue(
+          row,
+          headerIndexes,
+          ['EC', 'ec', 'agent'],
+          4,
+        );
+        const locationName = getECValue(
+          row,
+          headerIndexes,
+          ['Nama_Lokasi_Standard', 'nama_lokasi_standard', 'location_standard'],
+          78,
+        );
+        const centerNearest = getECValue(
+          row,
+          headerIndexes,
+          ['Center_Terdekat', 'center_terdekat', 'center_nearest', 'center'],
+          79,
+        );
+
+        return {
+          timestamp,
+          ec,
+          locationName,
+          namaLokasiStandard: locationName,
+          center: centerNearest,
+          centerNearest,
+          buEntries,
+        };
+      })
+      // Exclude rows without a standardized location.
+      .filter((row) => row.locationName !== '');
+
+    ecVisitsCache = {
+      at: Date.now(),
+      data,
+    };
+
+    // Prevent browser/proxy caching; the server maintains its own short cache.
+    res.set('Cache-Control', 'no-store');
+
+    return res.json({
+      success: true,
+      data,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('EC visits fetch failed:', error);
+
+    return res.status(502).json({
+      success: false,
+      error: 'Failed to load EC visit data.',
+    });
+  }
+});
+
+
 // Setup Vite middleware in dev or static files in production
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
