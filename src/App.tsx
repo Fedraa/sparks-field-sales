@@ -259,7 +259,7 @@ export default function App() {
           </button>
 
           <a
-            href="https://script.google.com/macros/s/AKfycbzxwe1X_36BIJFIbN-pKy6j0eiUh778h2BQcNl2SGfjgiGUgfXGEHeSIphKAXXgGLLKrg/exec"
+            href="https://script.google.com/a/seven-retail.com/macros/s/AKfycbxbRJgkvIqiM92S13QzgFyI6S4algnBAnr8IhADRnVM0z2Ej4RrwplhK-mZ__psM-1EKg/exec"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] hover:bg-[#EFF6F1] text-xs font-bold transition-colors shrink-0"
