@@ -10,13 +10,15 @@ import {
   Navigation,
   AlertTriangle,
   Loader2,
+  ClipboardList,
 } from 'lucide-react';
 import { loadFieldData, type FieldDataset } from './data/fieldData';
 import { DAY_ID, DAY_EN, planDayInfo } from './lib/visitPlan';
 import { CenterPicker } from './components/field/CenterPicker';
 import { LocationCard } from './components/field/LocationCard';
+import { ECReportDashboard } from './components/field/ECReportDashboard';
 
-type View = 'best' | 'closest' | 'score';
+type View = 'best' | 'closest' | 'score' | 'ec';
 type BestSort = 'score' | 'fit' | 'timeAsc' | 'timeDesc';
 const PAGE = 20;
 const CENTER_KEY = 'sparks.fieldSales.center';
@@ -42,6 +44,7 @@ const VIEWS: { id: View; label: string; icon: React.ReactNode }[] = [
   { id: 'best', label: 'Rekomendasi Terbaik', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
   { id: 'closest', label: 'Terdekat', icon: <Navigation className="w-3.5 h-3.5" /> },
   { id: 'score', label: 'Skor Tertinggi', icon: <Trophy className="w-3.5 h-3.5" /> },
+  { id: 'ec', label: 'Laporan EC', icon: <ClipboardList className="w-3.5 h-3.5" /> },
 ];
 
 const byScore = (a: { scoreTotal: number | null }, b: { scoreTotal: number | null }) =>
@@ -209,6 +212,8 @@ export default function App() {
         break;
       case 'score':
         arr = [...arr].sort((a, b) => byScore(a.loc, b.loc));
+        break;
+      case 'ec':
         break;
     }
     return arr;
@@ -390,83 +395,93 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Sort + Search */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                    {view === 'ec' ? (
+                      <ECReportDashboard
+                        centerCode={center.code}
+                        locations={data.locations}
+                        centers={data.centers}
+                      />
+                    ) : (
+                      <>
+                        {/* Sort + Search */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
 
-                      {/* Best for Day sorting */}
-                      {view === 'best' && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs font-bold text-[#295637]">
-                            Urutkan berdasarkan
-                          </span>
+                          {/* Best for Day sorting */}
+                          {view === 'best' && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs font-bold text-[#295637]">
+                                Urutkan berdasarkan
+                              </span>
 
-                          <select
-                            value={bestSort}
-                            onChange={(e) =>
-                              setBestSort(e.target.value as BestSort)
-                            }
-                            className="text-xs font-bold text-[#295637] bg-white border border-[#D5E5DA] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
-                            aria-label="Urutkan Rekomendasi Hari"
-                          >
-                            <option value="score">Skor Total Tertinggi</option>
-                            <option value="fit">Paling Cocok untuk Hari</option>
-                            <option value="timeAsc">Waktu Keramaian: Pagi → Sore</option>
-                            <option value="timeDesc">Waktu Keramaian: Sore → Pagi</option>
-                          </select>
+                              <select
+                                value={bestSort}
+                                onChange={(e) =>
+                                  setBestSort(e.target.value as BestSort)
+                                }
+                                className="text-xs font-bold text-[#295637] bg-white border border-[#D5E5DA] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
+                                aria-label="Urutkan Rekomendasi Hari"
+                              >
+                                <option value="score">Skor Total Tertinggi</option>
+                                <option value="fit">Paling Cocok untuk Hari</option>
+                                <option value="timeAsc">Waktu Keramaian: Pagi → Sore</option>
+                                <option value="timeDesc">Waktu Keramaian: Sore → Pagi</option>
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Search */}
+                          <div className="relative sm:ml-auto w-full sm:w-64">
+                            <Search className="w-4 h-4 text-[#7E9787] absolute left-3 top-1/2 -translate-y-1/2" />
+
+                            <input
+                              value={query}
+                              onChange={(e) => setQuery(e.target.value)}
+                              placeholder="Cari lokasi…"
+                              className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D5E5DA] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
+                            />
+                          </div>
+
                         </div>
-                      )}
+                        <p className="text-xs text-[#5A7766] mb-3 px-1">
+                          {list.length} lokasi
+                          {view === 'best' && ` dengan data keramaian yang kuat untuk ${DAY_ID[day]} (Popular Times ≥ 50 atau hari tersibuk)`}
+                          {view === 'closest' && ' diurutkan berdasarkan jarak terdekat dari Center'}
+                          {view === 'score' && ' diurutkan berdasarkan skor total'}
+                        </p>
 
-                      {/* Search */}
-                      <div className="relative sm:ml-auto w-full sm:w-64">
-                        <Search className="w-4 h-4 text-[#7E9787] absolute left-3 top-1/2 -translate-y-1/2" />
+                        {list.length === 0 && (
+                          <div className="bg-white border border-[#DCE8DE] rounded-2xl p-6 text-sm text-[#5A7766]">
+                            {view === 'best'
+                              ? `Tidak ada lokasi dengan data keramaian yang kuat untuk ${DAY_ID[day]}. Coba "Skor Tertinggi" atau "Terdekat".`
+                              : 'Tidak ada lokasi yang cocok dengan filter ini.'}
+                          </div>
+                        )}
 
-                        <input
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          placeholder="Cari lokasi…"
-                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#D5E5DA] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
-                        />
-                      </div>
+                        <div className="space-y-3">
+                          {shown.map(({ loc, info }) => (
+                            <div id={`loc-${loc.id}`} key={loc.id}>
+                              <LocationCard
+                                loc={loc}
+                                info={info}
+                                day={day}
+                                selected={selectedId === loc.id}
+                                onSelect={setSelectedId}
+                              />
+                            </div>
+                          ))}
+                        </div>
 
-                    </div>
-                  <p className="text-xs text-[#5A7766] mb-3 px-1">
-                    {list.length} lokasi
-                    {view === 'best' && ` dengan data keramaian yang kuat untuk ${DAY_ID[day]} (Popular Times ≥ 50 atau hari tersibuk)`}
-                    {view === 'closest' && ' diurutkan berdasarkan jarak terdekat dari Center'}
-                    {view === 'score' && ' diurutkan berdasarkan skor total'}
-                  </p>
-
-                  {list.length === 0 && (
-                    <div className="bg-white border border-[#DCE8DE] rounded-2xl p-6 text-sm text-[#5A7766]">
-                      {view === 'best'
-                        ? `Tidak ada lokasi dengan data keramaian yang kuat untuk ${DAY_ID[day]}. Coba "Skor Tertinggi" atau "Terdekat".`
-                        : 'Tidak ada lokasi yang cocok dengan filter ini.'}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    {shown.map(({ loc, info }) => (
-                      <div id={`loc-${loc.id}`} key={loc.id}>
-                        <LocationCard
-                          loc={loc}
-                          info={info}
-                          day={day}
-                          selected={selectedId === loc.id}
-                          onSelect={setSelectedId}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {list.length > visible && (
-                    <button
-                      onClick={() => setVisible((v) => v + PAGE)}
-                      className="mt-4 w-full px-4 py-2.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] text-sm font-bold hover:bg-[#EFF6F1]"
-                    >
-                      Tampilkan lebih banyak ({list.length - visible} tersisa)
-                    </button>
-                  )}
-                </section>
+                        {list.length > visible && (
+                          <button
+                            onClick={() => setVisible((v) => v + PAGE)}
+                            className="mt-4 w-full px-4 py-2.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] text-sm font-bold hover:bg-[#EFF6F1]"
+                          >
+                            Tampilkan lebih banyak ({list.length - visible} tersisa)
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </section>
               </div>
             )}
 
