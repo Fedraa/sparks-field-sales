@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Building2,
@@ -7,6 +7,11 @@ import {
   Compass,
   MapPin,
   Navigation,
+  Globe,
+  Database,
+  Loader2,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import type { Center, FieldLocation } from '../../data/fieldData';
 import {
@@ -17,6 +22,11 @@ import {
   type NearbyCenter,
   type NearbyLocation,
 } from '../../lib/nearbySparks';
+import {
+  searchLocations,
+  QUICK_SEARCH_CHIPS,
+  type LocationSearchResult,
+} from '../../lib/locationSearch';
 import { NearbySparksMap } from './NearbySparksMap';
 
 interface Props {
@@ -53,6 +63,99 @@ export const CenterPicker: React.FC<Props> = ({
   // State untuk mode 'nearby'
   const [referenceQuery, setReferenceQuery] = useState('');
   const [selectedReference, setSelectedReference] = useState<FieldLocation | null>(null);
+
+  // Sumber pencarian patokan: 'osm' (Nominatim OpenStreetMap) atau 'internal' (Database POI Sparks)
+  const [searchSource, setSearchSource] = useState<'osm' | 'internal'>('osm');
+
+  // State pencarian OSM (Nominatim)
+  const [osmResults, setOsmResults] = useState<LocationSearchResult[]>([]);
+  const [isOsmLoading, setIsOsmLoading] = useState(false);
+  const [osmError, setOsmError] = useState<string | null>(null);
+
+  // Debounced search via Nominatim OpenStreetMap (minimal 3 karakter, debounce 450ms)
+  useEffect(() => {
+    if (mode !== 'nearby' || searchSource !== 'osm') {
+      return;
+    }
+
+    const clean = referenceQuery.trim();
+    if (clean.length < 3) {
+      setOsmResults([]);
+      setIsOsmLoading(false);
+      setOsmError(null);
+      return;
+    }
+
+    setIsOsmLoading(true);
+    setOsmError(null);
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchLocations(clean, controller.signal);
+        setOsmResults(results);
+        setIsOsmLoading(false);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          setOsmError(err?.message || 'Gagal mencari lokasi di OpenStreetMap.');
+          setIsOsmLoading(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [referenceQuery, searchSource, mode]);
+
+  const handleSelectOsmLocation = (res: LocationSearchResult) => {
+    const loc: FieldLocation = {
+      id: `osm-${res.id}`,
+      name: res.name,
+      category: 'Lokasi Bebas (OSM)',
+      group: 'OpenStreetMap',
+      relevant: true,
+      centerCode: '',
+      centerName: '',
+      statusWilayah: '',
+      distanceKm: null,
+      lat: res.lat,
+      lng: res.lng,
+      address: res.displayName,
+      hours: '',
+      rating: null,
+      reviewCount: null,
+      phone: '',
+      mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        `${res.name} ${res.displayName}`
+      )}`,
+      scoreTotal: null,
+      trafficScore: null,
+      familyScore: null,
+      segmentScore: null,
+      distanceScore: null,
+      tier: 'B',
+      globalRank: null,
+      completeness: '',
+      popular: {
+        sat0912: null,
+        sat1518: null,
+        sun0912: null,
+        sun1518: null,
+        weekday1518: null,
+        peakNote: '',
+        bestDay: '',
+      },
+      kidsFacility: '',
+      segmentLabel: '',
+      segmentReason: '',
+      tactic: '',
+      rankInCenter: null,
+      centerTotal: 0,
+    };
+    setSelectedReference(loc);
+  };
 
   // Grouping daftar Center berdasarkan Region (existing behavior)
   const groups = useMemo(() => {
@@ -237,9 +340,25 @@ export const CenterPicker: React.FC<Props> = ({
                 autoFocus
                 value={referenceQuery}
                 onChange={(e) => setReferenceQuery(e.target.value)}
-                placeholder="Ketik nama tempat/mall patokan…"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#D5E5DA] bg-[#F8FAF8] text-sm text-[#173020] focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
+                placeholder={
+                  searchSource === 'osm'
+                    ? 'Ketik nama tempat/mall bebas di Indonesia…'
+                    : 'Ketik nama tempat/mall patokan di database…'
+                }
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-[#D5E5DA] bg-[#F8FAF8] text-sm text-[#173020] focus:outline-none focus:ring-2 focus:ring-[#3B7451]/30"
               />
+              {isOsmLoading ? (
+                <Loader2 className="w-4 h-4 text-[#3B7451] absolute right-3 top-1/2 -translate-y-1/2 animate-spin" />
+              ) : referenceQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setReferenceQuery('')}
+                  className="p-1 rounded-md text-[#7E9787] hover:text-[#173020] absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label="Bersihkan pencarian"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : null}
             </div>
           )}
         </div>
@@ -299,53 +418,205 @@ export const CenterPicker: React.FC<Props> = ({
               {/* SUB-FLOW 2A: Pilih Lokasi Patokan */}
               {!selectedReference ? (
                 <div>
-                  {referenceQuery.trim().length < 2 ? (
-                    <div className="py-8 px-4 text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-[#E3F2E7] text-[#254C33] mx-auto flex items-center justify-center mb-3">
-                        <MapPin className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-sm font-bold text-[#173020]">
-                        Cari Lokasi Patokan
-                      </h3>
-                      <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
-                        Ketik minimal 2 huruf nama tempat, mall, atau jalan di database Sparks untuk mencari Center & POI di sekitarnya.
-                      </p>
-                    </div>
-                  ) : matchingLocations.length === 0 ? (
-                    <div className="py-8 px-4 text-center">
-                      <p className="text-sm font-bold text-[#7A2E2E]">
-                        Lokasi tidak ditemukan di database Sparks.
-                      </p>
-                      <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
-                        Coba gunakan kata kunci yang lebih umum seperti nama mall, kawasan, atau nama jalan.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="px-1 pb-1 text-[11px] font-bold text-[#5A7766]">
-                        Pilih lokasi patokan ({matchingLocations.length} hasil):
-                      </div>
-                      {matchingLocations.map((loc) => (
-                        <button
-                          key={loc.id}
-                          type="button"
-                          onClick={() => setSelectedReference(loc)}
-                          className="w-full p-2.5 rounded-xl border border-[#DCE8DE] hover:border-[#3B7451] hover:bg-[#F4F8F5] text-left transition-colors flex items-start gap-2.5"
-                        >
-                          <MapPin className="w-4 h-4 text-[#356B48] shrink-0 mt-0.5" />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-bold text-[#173020] truncate">
-                              {loc.name}
+                  {/* Selector Sumber Pencarian: Nominatim OSM vs Database Internal */}
+                  <div className="mb-3 flex p-1 bg-[#F0F5F1] rounded-xl text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSearchSource('osm')}
+                      className={`flex-1 py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 font-bold ${
+                        searchSource === 'osm'
+                          ? 'bg-white text-[#173020] shadow-xs'
+                          : 'text-[#5A7766] hover:text-[#173020]'
+                      }`}
+                    >
+                      <Globe className="w-3.5 h-3.5 text-[#254C33]" />
+                      <span>Pencarian Bebas (OSM)</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#E3F2E7] text-[#254C33] font-extrabold uppercase">
+                        POC
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSearchSource('internal')}
+                      className={`flex-1 py-1.5 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 font-bold ${
+                        searchSource === 'internal'
+                          ? 'bg-white text-[#173020] shadow-xs'
+                          : 'text-[#5A7766] hover:text-[#173020]'
+                      }`}
+                    >
+                      <Database className="w-3.5 h-3.5 text-[#5A7766]" />
+                      <span>Database Sparks ({locations.length})</span>
+                    </button>
+                  </div>
+
+                  {/* =========================================
+                      A1. TAMPILAN PENCARIAN OSM (NOMINATIM)
+                     ========================================= */}
+                  {searchSource === 'osm' && (
+                    <div>
+                      {/* Saran Cepat jika belum mengetik */}
+                      {referenceQuery.trim().length < 3 && (
+                        <div className="py-4 px-2 text-center">
+                          <div className="w-12 h-12 rounded-2xl bg-[#E3F2E7] text-[#254C33] mx-auto flex items-center justify-center mb-2.5">
+                            <Globe className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-sm font-bold text-[#173020]">
+                            Ketik Nama Lokasi Bebas di Indonesia
+                          </h3>
+                          <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
+                            Gunakan OpenStreetMap Nominatim untuk mencari mall, jalan, atau kawasan di luar database Sparks.
+                          </p>
+
+                          {/* Quick Chips */}
+                          <div className="mt-4 pt-3 border-t border-[#EEF4EF]">
+                            <div className="text-[11px] font-bold text-[#5A7766] mb-2 flex items-center justify-center gap-1">
+                              <Sparkles className="w-3 h-3 text-[#B87A14]" />
+                              <span>Coba lokasi cepat:</span>
                             </div>
-                            <div className="text-[11px] text-[#5A7766] truncate mt-0.5">
-                              {loc.category}
-                              {loc.group ? ` · ${loc.group}` : ''}
-                              {loc.address ? ` · ${loc.address}` : ''}
+                            <div className="flex flex-wrap justify-center gap-1.5">
+                              {QUICK_SEARCH_CHIPS.map((chip) => (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => setReferenceQuery(chip)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#F0F5F1] text-[#1E3A28] hover:bg-[#E3F2E7] hover:text-[#254C33] transition-colors border border-[#DCE8DE]"
+                                >
+                                  {chip}
+                                </button>
+                              ))}
                             </div>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-[#9AB2A2] shrink-0 mt-0.5" />
-                        </button>
-                      ))}
+                        </div>
+                      )}
+
+                      {/* State Loading */}
+                      {isOsmLoading && (
+                        <div className="py-8 px-4 text-center">
+                          <Loader2 className="w-6 h-6 text-[#254C33] animate-spin mx-auto mb-2" />
+                          <p className="text-xs font-bold text-[#173020]">
+                            Mencari lokasi di OpenStreetMap Nominatim…
+                          </p>
+                          <p className="text-[11px] text-[#5A7766] mt-0.5">
+                            Mengambil koordinat latitude & longitude
+                          </p>
+                        </div>
+                      )}
+
+                      {/* State Error */}
+                      {!isOsmLoading && osmError && (
+                        <div className="py-6 px-4 bg-[#FDF4F4] border border-[#F5C6C6] rounded-xl text-center">
+                          <AlertCircle className="w-5 h-5 text-[#A32A2A] mx-auto mb-1.5" />
+                          <p className="text-xs font-bold text-[#A32A2A]">{osmError}</p>
+                          <p className="text-[11px] text-[#5A7766] mt-1">
+                            Anda juga dapat beralih ke tab <strong>Database Sparks</strong> di atas.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* State Empty Result */}
+                      {!isOsmLoading && !osmError && referenceQuery.trim().length >= 3 && osmResults.length === 0 && (
+                        <div className="py-8 px-4 text-center">
+                          <p className="text-sm font-bold text-[#7A2E2E]">
+                            Lokasi tidak ditemukan di OpenStreetMap.
+                          </p>
+                          <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
+                            Coba kata kunci lain atau periksa ejaan nama tempat/kota.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Daftar Hasil OSM */}
+                      {!isOsmLoading && !osmError && osmResults.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="px-1 pb-1 text-[11px] font-bold text-[#5A7766] flex items-center justify-between">
+                            <span>Hasil OpenStreetMap ({osmResults.length}):</span>
+                            <span className="text-[10px] text-[#7E9787]">Klik untuk cek Center 7 km</span>
+                          </div>
+                          {osmResults.map((res) => (
+                            <button
+                              key={res.id}
+                              type="button"
+                              onClick={() => handleSelectOsmLocation(res)}
+                              className="w-full p-2.5 rounded-xl border border-[#DCE8DE] hover:border-[#3B7451] hover:bg-[#F4F8F5] text-left transition-colors flex items-start gap-2.5 group"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-[#E3F2E7] text-[#254C33] flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#254C33] group-hover:text-white transition-colors">
+                                <MapPin className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-[#173020] truncate">
+                                    {res.name}
+                                  </span>
+                                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#F0F5F1] text-[#5A7766] shrink-0">
+                                    {res.lat.toFixed(4)}, {res.lng.toFixed(4)}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-[#5A7766] truncate mt-0.5">
+                                  {res.displayName}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-[#9AB2A2] shrink-0 mt-1" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* =========================================
+                      A2. TAMPILAN PENCARIAN DATABASE SPARKS
+                     ========================================= */}
+                  {searchSource === 'internal' && (
+                    <div>
+                      {referenceQuery.trim().length < 2 ? (
+                        <div className="py-6 px-4 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-[#E3F2E7] text-[#254C33] mx-auto flex items-center justify-center mb-2.5">
+                            <Database className="w-5 h-5" />
+                          </div>
+                          <h3 className="text-sm font-bold text-[#173020]">
+                            Cari di Database POI Sparks
+                          </h3>
+                          <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
+                            Ketik nama tempat/mall yang sudah terdaftar di database internal Sparks.
+                          </p>
+                        </div>
+                      ) : matchingLocations.length === 0 ? (
+                        <div className="py-8 px-4 text-center">
+                          <p className="text-sm font-bold text-[#7A2E2E]">
+                            Lokasi tidak ditemukan di database Sparks.
+                          </p>
+                          <p className="text-xs text-[#5A7766] mt-1 max-w-xs mx-auto">
+                            Coba beralih ke tab <strong>Pencarian Bebas (OSM)</strong> di atas untuk mencari tempat di luar database.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="px-1 pb-1 text-[11px] font-bold text-[#5A7766]">
+                            Pilih lokasi patokan ({matchingLocations.length} hasil):
+                          </div>
+                          {matchingLocations.map((loc) => (
+                            <button
+                              key={loc.id}
+                              type="button"
+                              onClick={() => setSelectedReference(loc)}
+                              className="w-full p-2.5 rounded-xl border border-[#DCE8DE] hover:border-[#3B7451] hover:bg-[#F4F8F5] text-left transition-colors flex items-start gap-2.5"
+                            >
+                              <MapPin className="w-4 h-4 text-[#356B48] shrink-0 mt-0.5" />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold text-[#173020] truncate">
+                                  {loc.name}
+                                </div>
+                                <div className="text-[11px] text-[#5A7766] truncate mt-0.5">
+                                  {loc.category}
+                                  {loc.group ? ` · ${loc.group}` : ''}
+                                  {loc.address ? ` · ${loc.address}` : ''}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-[#9AB2A2] shrink-0 mt-0.5" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -355,8 +626,19 @@ export const CenterPicker: React.FC<Props> = ({
                   {/* Summary Lokasi Patokan */}
                   <div className="mb-3.5 p-3 rounded-xl bg-[#EFF6F1] border border-[#BFE0C9] flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#254C33]">
-                        Lokasi Patokan
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#254C33]">
+                          Lokasi Patokan
+                        </span>
+                        {selectedReference.id.startsWith('osm-') ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#254C33] text-white">
+                            OSM Nominatim
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D5E5DA] text-[#1E3A28]">
+                            Database Sparks
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs sm:text-sm font-bold text-[#173020] truncate mt-0.5">
                         {selectedReference.name}
@@ -366,13 +648,18 @@ export const CenterPicker: React.FC<Props> = ({
                           {selectedReference.address}
                         </div>
                       )}
+                      {selectedReference.lat != null && selectedReference.lng != null && (
+                        <div className="text-[10px] font-mono text-[#5A7766] mt-0.5">
+                          Koordinat: {selectedReference.lat.toFixed(4)}, {selectedReference.lng.toFixed(4)}
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedReference(null)}
                       className="shrink-0 text-xs font-bold text-[#295637] hover:text-[#173020] px-2.5 py-1.5 rounded-lg border border-[#D5E5DA] bg-white hover:bg-[#F4F8F5] transition-colors"
                     >
-                      Ganti
+                      Ganti Lokasi
                     </button>
                   </div>
 

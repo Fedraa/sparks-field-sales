@@ -3,9 +3,16 @@ import L from 'leaflet';
 import type { FieldLocation } from '../../data/fieldData';
 import type { NearbyCenter, NearbyLocation } from '../../lib/nearbySparks';
 
+export interface ReferenceLocationInfo {
+  name: string;
+  address?: string;
+  lat: number | null;
+  lng: number | null;
+}
+
 interface Props {
   /** Lokasi patokan yang dipilih user */
-  referenceLocation: FieldLocation;
+  referenceLocation: ReferenceLocationInfo;
   /** Daftar Sparks Center terdekat hasil kalkulasi */
   nearbyCenters: NearbyCenter[];
   /** Daftar POI di sekitar lokasi patokan (maks 50 untuk performa) */

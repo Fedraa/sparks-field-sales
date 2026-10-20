@@ -164,6 +164,55 @@ app.get('/api/sheet/:tab', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// OpenStreetMap Nominatim proxy for POC "Find Sparks Near a Location"
+// Avoids rate limiting and satisfies Nominatim User-Agent requirement.
+// ---------------------------------------------------------------------------
+const geocodeCache = new Map<string, { at: number; data: any }>();
+const GEOCODE_CACHE_MS = 60 * 60 * 1000; // 1 jam cache
+
+app.get('/api/geocode', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) {
+    return res.json([]);
+  }
+  const cacheKey = q.toLowerCase();
+  const hit = geocodeCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < GEOCODE_CACHE_MS) {
+    return res.json(hit.data);
+  }
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/search?` +
+      new URLSearchParams({
+        q,
+        format: 'jsonv2',
+        limit: '5',
+        countrycodes: 'id',
+        addressdetails: '1',
+      }).toString();
+
+    const r = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'SparksFieldSalesApp/1.0 (retention.sparksports@seven-retail.com)',
+      },
+    });
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: `Nominatim HTTP ${r.status}` });
+    }
+
+    const data = await r.json();
+    geocodeCache.set(cacheKey, { at: Date.now(), data });
+    return res.json(data);
+  } catch (error: any) {
+    console.error('Geocode proxy failed:', error);
+    return res.status(500).json({ error: error?.message || 'Geocoding failed.' });
+  }
+});
+
+
 
 /* ---------------------------------------------------------------------------
  * Read-only EC visit report endpoint.
