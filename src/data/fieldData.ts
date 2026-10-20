@@ -19,6 +19,7 @@ export interface Center {
   lat: number | null;
   lng: number | null;
   active: boolean;
+  buAvailable: string;
 }
 
 export interface PopularTimes {
@@ -179,7 +180,7 @@ export async function loadFieldData(refresh = false): Promise<FieldDataset> {
     fetchTab('MAP_KATEGORI', refresh).catch(() => ''), // optional
   ]);
 
-  // --- Centers (A Kode, B Nama Center, C Kota, D Region, E Lat, F Lng, G Aktif?)
+  // --- Centers (A Kode, B Nama Center, C Kota, D Region, E Lat, F Lng, G Aktif?, H BU Available)
   const ct = toTable(centersCsv, ['Kode']);
   const c = {
     code: ct.col(['Kode'], 0),
@@ -189,6 +190,7 @@ export async function loadFieldData(refresh = false): Promise<FieldDataset> {
     lat: ct.col(['Lat'], 4),
     lng: ct.col(['Lng'], 5),
     active: ct.col(['Aktif?', 'Aktif'], 6),
+    buAvailable: ct.col(['BU Available'], 7),
   };
   const centers: Center[] = ct.rows.map((r) => ({
     code: str(r[c.code]),
@@ -198,6 +200,7 @@ export async function loadFieldData(refresh = false): Promise<FieldDataset> {
     lat: num(r[c.lat]),
     lng: num(r[c.lng]),
     active: str(r[c.active]).toUpperCase() !== 'FALSE',
+    buAvailable: str(r[c.buAvailable]),
   }));
   const centerByName = new Map(centers.map((x) => [x.name.toLowerCase(), x]));
   const centerByCode = new Map(centers.map((x) => [x.code.toUpperCase(), x]));

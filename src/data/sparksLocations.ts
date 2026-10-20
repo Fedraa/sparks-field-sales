@@ -583,8 +583,7 @@ export function calculateDistanceKm(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c;
-  return Number(d.toFixed(2));
+  return R * c;
 }
 
 // Generate realistic POIs based on center lat/lng and max radius

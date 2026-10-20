@@ -264,7 +264,7 @@ export default function App() {
           </button>
 
           <a
-            href="https://script.google.com/a/seven-retail.com/macros/s/AKfycbxbRJgkvIqiM92S13QzgFyI6S4algnBAnr8IhADRnVM0z2Ej4RrwplhK-mZ__psM-1EKg/exec"
+            href="https://script.google.com/a/macros/seven-retail.com/s/AKfycbxTUctZmzkILUQtO5JMDl14fc5XeHT8Xx23IhR5BOYV_5G5hy2Hnm7Kwquj6gaAglfIHg/exec"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#D5E5DA] bg-white text-[#295637] hover:bg-[#EFF6F1] text-xs font-bold transition-colors shrink-0"
@@ -496,6 +496,7 @@ export default function App() {
       {pickerOpen && data && (
         <CenterPicker
           centers={data.centers}
+          locations={data.locations}
           counts={counts}
           current={centerCode}
           onPick={pickCenter}
